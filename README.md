@@ -58,3 +58,36 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 # EcommerceBackend
+
+## Deploiement Docker
+
+Le backend peut maintenant etre construit et lance via Docker avec une image Laravel prebuild :
+
+```bash
+docker compose up --build
+```
+
+L'API sera disponible sur `http://localhost:8000`.
+
+### Ce que fait la containerisation
+
+- build multi-stage pour installer les dependances PHP via Composer
+- build des assets Vite pendant l'image
+- execution via Apache avec `public/` comme document root
+- migrations lancees automatiquement au demarrage si `RUN_MIGRATIONS=true`
+- base PostgreSQL fournie par le `docker-compose.yml`
+
+### Variables importantes
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `APP_URL=http://localhost:8000`
+- `DB_CONNECTION=pgsql`
+- `DB_HOST=db`
+- `DB_PORT=5432`
+- `DB_DATABASE=sitetatrend`
+- `DB_USERNAME=laravel`
+- `DB_PASSWORD=secret`
+- `RUN_MIGRATIONS=true`
+
+Pour un vrai deploiement, remplace les credentials de base de donnees et fournis une vraie `APP_KEY` dans l'environnement.
