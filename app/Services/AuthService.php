@@ -19,7 +19,17 @@ class AuthService
     public function __construct(
         private readonly UserRepository $userRepository
     ) {
-        $this->key = config('app.jwt_secret', 'secret123');
+        $jwtSecret = (string) (config('app.jwt_secret') ?? '');
+        $appKey = (string) (config('app.key') ?? '');
+
+        // Use a dedicated JWT secret when available, otherwise fall back to APP_KEY.
+        $secret = $jwtSecret !== '' ? $jwtSecret : $appKey;
+
+        if ($secret === '') {
+            throw new \RuntimeException('JWT secret is not configured.');
+        }
+
+        $this->key = $secret;
     }
 
     public function register(RegisterDTO $dto): array
