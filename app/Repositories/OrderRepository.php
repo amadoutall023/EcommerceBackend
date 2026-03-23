@@ -111,6 +111,8 @@ class OrderRepository
             totalAmount: (float) $orderData->total_amount,
             status: $orderData->status,
             createdAt: $orderData->created_at,
+            customerName: $orderData->customer_name ?? null,
+            customerPhone: $orderData->customer_phone ?? null,
             items: $items
         );
     }
