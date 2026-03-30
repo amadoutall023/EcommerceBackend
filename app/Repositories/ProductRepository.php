@@ -44,6 +44,17 @@ class ProductRepository
         return $data ? Product::fromArray((array) $data) : null;
     }
 
+    public function findBySlug(string $slug): ?Product
+    {
+        $data = DB::table($this->table)
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->select('products.*', 'categories.name as category_name')
+            ->where('products.slug', $slug)
+            ->first();
+
+        return $data ? Product::fromArray((array) $data) : null;
+    }
+
     public function updateStock(int $productId, int $quantity): bool
     {
         return DB::table($this->table)

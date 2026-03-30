@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
+use App\Services\CloudinaryService;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,7 +11,8 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     public function __construct(
-        private readonly ProductService $productService
+        private readonly ProductService $productService,
+        private readonly CloudinaryService $cloudinaryService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -39,7 +41,6 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string',
-            'slug' => 'required|string|unique:products,slug',
             'category_id' => 'required|integer|exists:categories,id',
             'price' => 'required|numeric',
             'original_price' => 'nullable|numeric',
@@ -51,8 +52,10 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_url'] = asset('storage/' . $path);
+            $data['image_url'] = $this->cloudinaryService->uploadImage(
+                $request->file('image'),
+                'site-ta-trend/products'
+            );
         }
 
         unset($data['image']);
@@ -65,7 +68,6 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'name' => 'sometimes|string',
-            'slug' => 'sometimes|string',
             'category_id' => 'sometimes|integer|exists:categories,id',
             'price' => 'sometimes|numeric',
             'original_price' => 'nullable|numeric',
@@ -77,8 +79,10 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $data['image_url'] = asset('storage/' . $path);
+            $data['image_url'] = $this->cloudinaryService->uploadImage(
+                $request->file('image'),
+                'site-ta-trend/products'
+            );
         }
 
         unset($data['image']);
@@ -97,13 +101,14 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string',
-            'slug' => 'required|string|unique:categories,slug',
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('categories', 'public');
-            $data['image_url'] = asset('storage/' . $path);
+            $data['image_url'] = $this->cloudinaryService->uploadImage(
+                $request->file('image'),
+                'site-ta-trend/categories'
+            );
         }
 
         unset($data['image']);
@@ -118,13 +123,14 @@ class ProductController extends Controller
         // using _method=PUT with POST is often safer in Laravel if FormData is involved.
         $data = $request->validate([
             'name' => 'sometimes|string',
-            'slug' => 'sometimes|string|unique:categories,slug,' . $id,
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('categories', 'public');
-            $data['image_url'] = asset('storage/' . $path);
+            $data['image_url'] = $this->cloudinaryService->uploadImage(
+                $request->file('image'),
+                'site-ta-trend/categories'
+            );
         }
 
         unset($data['image']);
