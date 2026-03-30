@@ -21,12 +21,10 @@ return new class extends Migration
             $table->string('product_image')->nullable()->after('product_name');
         });
 
-        DB::table('order_items')
-            ->leftJoin('products', 'order_items.product_id', '=', 'products.id')
-            ->update([
-                'product_name' => DB::raw('products.name'),
-                'product_image' => DB::raw('products.image_url'),
-            ]);
+        DB::table('order_items')->update([
+            'product_name' => DB::raw("(SELECT products.name FROM products WHERE products.id = order_items.product_id)"),
+            'product_image' => DB::raw("(SELECT products.image_url FROM products WHERE products.id = order_items.product_id)"),
+        ]);
 
         Schema::table('order_items', function (Blueprint $table) {
             $table->dropForeign(['product_id']);
