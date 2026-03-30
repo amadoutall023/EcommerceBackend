@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    private const ALLOWED_STATUSES = ['pending', 'paid', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+
     public function __construct(
         private readonly OrderService $orderService
     ) {}
@@ -41,6 +43,14 @@ class OrderController extends Controller
         if (!$status) {
             return response()->json(['message' => 'Status is required'], 422);
         }
+
+        if (!in_array($status, self::ALLOWED_STATUSES, true)) {
+            return response()->json([
+                'message' => 'Invalid status',
+                'allowed_statuses' => self::ALLOWED_STATUSES,
+            ], 422);
+        }
+
         $result = $this->orderService->updateOrderStatus($id, $status);
         return response()->json($result);
     }

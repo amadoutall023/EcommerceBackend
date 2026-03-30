@@ -74,9 +74,12 @@ class CartRepository
             ->update(['quantity' => $quantity, 'updated_at' => now()]);
     }
 
-    public function removeItem(int $itemId): void
+    public function removeItem(int $cartId, int $itemId): int
     {
-        DB::table('cart_items')->where('id', $itemId)->delete();
+        return DB::table('cart_items')
+            ->where('cart_id', $cartId)
+            ->where('id', $itemId)
+            ->delete();
     }
 
     public function clearCart(int $cartId): void

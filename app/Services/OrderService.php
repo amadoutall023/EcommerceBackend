@@ -126,6 +126,8 @@ class OrderService
 
             $orderItems[] = [
                 'product_id' => $product->id,
+                'product_name' => $product->name,
+                'product_image' => $product->imageUrl,
                 'quantity' => $quantity,
                 'unit_price' => $product->price,
                 'selected_size' => $item['selected_size'] ?? null,

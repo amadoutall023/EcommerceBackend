@@ -41,12 +41,26 @@ class CartService
             throw new NotFoundException('Produit');
         }
 
-        if ($product->stock < $dto->quantity) {
-            throw new ValidationException(['quantity' => 'Stock insuffisant.']);
-        }
-
         $cart = $this->cartRepository->findByUserId($userId);
         $cartId = $cart ? $cart->id : $this->cartRepository->createForUser($userId);
+        $existingQuantity = 0;
+
+        if ($cart) {
+            foreach ($cart->items as $item) {
+                if (
+                    $item->productId === $product->id
+                    && $item->selectedSize === $dto->selectedSize
+                    && $item->selectedColor === $dto->selectedColor
+                ) {
+                    $existingQuantity = $item->quantity;
+                    break;
+                }
+            }
+        }
+
+        if ($product->stock < ($existingQuantity + $dto->quantity)) {
+            throw new ValidationException(['quantity' => 'Stock insuffisant.']);
+        }
 
         $this->cartRepository->addItem(
             $cartId, 
@@ -94,6 +108,10 @@ class CartService
             throw new NotFoundException('Panier');
         }
 
-        $this->cartRepository->removeItem($itemId);
+        $deleted = $this->cartRepository->removeItem($cart->id, $itemId);
+
+        if ($deleted === 0) {
+            throw new NotFoundException('Article du panier');
+        }
     }
 }

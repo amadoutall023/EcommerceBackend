@@ -23,6 +23,8 @@ class OrderRepository
                 DB::table('order_items')->insert([
                     'order_id'       => $orderId,
                     'product_id'     => $item['product_id'],
+                    'product_name'   => $item['product_name'],
+                    'product_image'  => $item['product_image'] ?? null,
                     'quantity'       => $item['quantity'],
                     'unit_price'     => $item['unit_price'],
                     'selected_size'  => $item['selected_size'] ?? null,
@@ -98,8 +100,7 @@ class OrderRepository
     private function hydrateOrder($orderData): Order
     {
         $itemsData = DB::table('order_items')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->select('order_items.*', 'products.name as product_name')
+            ->select('order_items.*')
             ->where('order_id', $orderData->id)
             ->get();
 

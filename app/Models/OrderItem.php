@@ -7,12 +7,13 @@ class OrderItem
     public function __construct(
         public readonly int $id,
         public readonly int $orderId,
-        public readonly int $productId,
+        public readonly ?int $productId,
         public readonly int $quantity,
         public readonly float $unitPrice,
         public readonly ?string $selectedSize = null,
         public readonly ?string $selectedColor = null,
         public readonly ?string $productName = null,
+        public readonly ?string $productImage = null,
     ) {}
 
     public static function fromArray(array $data): self
@@ -20,12 +21,13 @@ class OrderItem
         return new self(
             id: (int) $data['id'],
             orderId: (int) $data['order_id'],
-            productId: (int) $data['product_id'],
+            productId: isset($data['product_id']) ? (int) $data['product_id'] : null,
             quantity: (int) $data['quantity'],
             unitPrice: (float) $data['unit_price'],
             selectedSize: $data['selected_size'] ?? null,
             selectedColor: $data['selected_color'] ?? null,
             productName: $data['product_name'] ?? null,
+            productImage: $data['product_image'] ?? null,
         );
     }
 
@@ -40,6 +42,7 @@ class OrderItem
             'id'             => $this->id,
             'product_id'     => $this->productId,
             'product_name'   => $this->productName,
+            'product_image'  => $this->productImage,
             'quantity'       => $this->quantity,
             'unit_price'     => $this->unitPrice,
             'selected_size'  => $this->selectedSize,
