@@ -32,8 +32,8 @@ class Product
             price: (float) $data['price'],
             originalPrice: isset($data['original_price']) ? (float) $data['original_price'] : null,
             stock: (int) $data['stock'],
-            imageUrl: $data['image_url'] ?? null,
-            images: isset($data['images']) ? (is_string($data['images']) ? json_decode($data['images'], true) : $data['images']) : null,
+            imageUrl: self::normalizeImageUrl($data['image_url'] ?? null),
+            images: isset($data['images']) ? self::normalizeImages(is_string($data['images']) ? json_decode($data['images'], true) : $data['images']) : null,
             sizes: isset($data['sizes']) ? (is_string($data['sizes']) ? json_decode($data['sizes'], true) : $data['sizes']) : null,
             colors: isset($data['colors']) ? (is_string($data['colors']) ? json_decode($data['colors'], true) : $data['colors']) : null,
             createdAt: $data['created_at'] ?? '',
@@ -64,5 +64,32 @@ class Product
     public function isInStock(int $qty = 1): bool
     {
         return $this->stock >= $qty;
+    }
+
+    private static function normalizeImages(?array $images): ?array
+    {
+        if ($images === null) {
+            return null;
+        }
+
+        return array_map(
+            fn ($image) => is_string($image) ? self::normalizeImageUrl($image) : $image,
+            $images
+        );
+    }
+
+    private static function normalizeImageUrl(?string $imageUrl): ?string
+    {
+        if (! is_string($imageUrl) || $imageUrl === '') {
+            return $imageUrl;
+        }
+
+        $storagePath = parse_url($imageUrl, PHP_URL_PATH);
+
+        if (! is_string($storagePath) || ! str_starts_with($storagePath, '/storage/')) {
+            return $imageUrl;
+        }
+
+        return rtrim((string) config('app.url'), '/') . $storagePath;
     }
 }

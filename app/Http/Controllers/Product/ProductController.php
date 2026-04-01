@@ -7,12 +7,12 @@ use App\Services\CloudinaryService;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 class ProductController extends Controller
 {
     public function __construct(
         private readonly ProductService $productService,
-        private readonly CloudinaryService $cloudinaryService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -52,7 +52,7 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image_url'] = $this->cloudinaryService->uploadImage(
+            $data['image_url'] = $this->uploadImage(
                 $request->file('image'),
                 'site-ta-trend/products'
             );
@@ -79,7 +79,7 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image_url'] = $this->cloudinaryService->uploadImage(
+            $data['image_url'] = $this->uploadImage(
                 $request->file('image'),
                 'site-ta-trend/products'
             );
@@ -105,7 +105,7 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image_url'] = $this->cloudinaryService->uploadImage(
+            $data['image_url'] = $this->uploadImage(
                 $request->file('image'),
                 'site-ta-trend/categories'
             );
@@ -127,7 +127,7 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image_url'] = $this->cloudinaryService->uploadImage(
+            $data['image_url'] = $this->uploadImage(
                 $request->file('image'),
                 'site-ta-trend/categories'
             );
@@ -143,5 +143,10 @@ class ProductController extends Controller
     {
         $this->productService->deleteCategory($id);
         return response()->json(['message' => 'Category deleted']);
+    }
+
+    private function uploadImage(UploadedFile $file, string $folder): string
+    {
+        return app(CloudinaryService::class)->uploadImage($file, $folder);
     }
 }

@@ -89,5 +89,8 @@ L'API sera disponible sur `http://localhost:8000`.
 - `DB_USERNAME=laravel`
 - `DB_PASSWORD=secret`
 - `RUN_MIGRATIONS=true`
+- `CLOUDINARY_CLOUD_NAME=...`
+- `CLOUDINARY_API_KEY=...`
+- `CLOUDINARY_API_SECRET=...`
 
 Pour un vrai deploiement, remplace les credentials de base de donnees et fournis une vraie `APP_KEY` dans l'environnement.

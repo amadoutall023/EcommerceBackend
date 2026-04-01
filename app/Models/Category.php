@@ -18,7 +18,7 @@ class Category
             id: (int) $data['id'],
             name: $data['name'],
             slug: $data['slug'],
-            imageUrl: $data['image_url'] ?? null,
+            imageUrl: self::normalizeImageUrl($data['image_url'] ?? null),
             createdAt: $data['created_at'] ?? '',
         );
     }
@@ -32,5 +32,20 @@ class Category
             'image_url'  => $this->imageUrl,
             'created_at' => $this->createdAt,
         ];
+    }
+
+    private static function normalizeImageUrl(?string $imageUrl): ?string
+    {
+        if (! is_string($imageUrl) || $imageUrl === '') {
+            return $imageUrl;
+        }
+
+        $storagePath = parse_url($imageUrl, PHP_URL_PATH);
+
+        if (! is_string($storagePath) || ! str_starts_with($storagePath, '/storage/')) {
+            return $imageUrl;
+        }
+
+        return rtrim((string) config('app.url'), '/') . $storagePath;
     }
 }
