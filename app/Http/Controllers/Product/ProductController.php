@@ -48,8 +48,8 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'sizes' => 'nullable|json',
             'colors' => 'nullable|json',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+            'image' => $this->imageRules(false),
+        ], $this->imageValidationMessages());
 
         if ($request->hasFile('image')) {
             $data['image_url'] = $this->uploadImage(
@@ -75,8 +75,8 @@ class ProductController extends Controller
             'description' => 'nullable|string',
             'sizes' => 'nullable|json',
             'colors' => 'nullable|json',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+            'image' => $this->imageRules(false),
+        ], $this->imageValidationMessages());
 
         if ($request->hasFile('image')) {
             $data['image_url'] = $this->uploadImage(
@@ -101,8 +101,8 @@ class ProductController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string',
-            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+            'image' => $this->imageRules(true),
+        ], $this->imageValidationMessages());
 
         if ($request->hasFile('image')) {
             $data['image_url'] = $this->uploadImage(
@@ -123,8 +123,8 @@ class ProductController extends Controller
         // using _method=PUT with POST is often safer in Laravel if FormData is involved.
         $data = $request->validate([
             'name' => 'sometimes|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+            'image' => $this->imageRules(false),
+        ], $this->imageValidationMessages());
 
         if ($request->hasFile('image')) {
             $data['image_url'] = $this->uploadImage(
@@ -148,5 +148,25 @@ class ProductController extends Controller
     private function uploadImage(UploadedFile $file, string $folder): string
     {
         return app(CloudinaryService::class)->uploadImage($file, $folder);
+    }
+
+    private function imageRules(bool $required): array
+    {
+        return [
+            $required ? 'required' : 'nullable',
+            'file',
+            'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif',
+            'max:10240',
+        ];
+    }
+
+    private function imageValidationMessages(): array
+    {
+        return [
+            'image.uploaded' => 'L’image est trop lourde pour le serveur. Essaie une image plus légère.',
+            'image.max' => 'L’image ne doit pas dépasser 10 Mo.',
+            'image.mimetypes' => 'Format d’image non pris en charge. Utilise JPG, PNG, GIF, WEBP, HEIC ou HEIF.',
+            'image.required' => 'Ajoute une image avant d’enregistrer.',
+        ];
     }
 }
