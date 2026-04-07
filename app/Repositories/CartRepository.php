@@ -18,7 +18,12 @@ class CartRepository
 
         $itemsData = DB::table('cart_items')
             ->join('products', 'cart_items.product_id', '=', 'products.id')
-            ->select('cart_items.*', 'products.name as product_name', 'products.image_url as product_image')
+            ->select(
+                'cart_items.*',
+                'products.name as product_name',
+                'products.image_url as product_image',
+                'products.colors as available_colors'
+            )
             ->where('cart_id', $cartData->id)
             ->get();
 
@@ -65,6 +70,25 @@ class CartRepository
                 'updated_at'     => now(),
             ]);
         }
+    }
+
+    public function updateItem(int $itemId, int $quantity, ?string $size = null, ?string $color = null): void
+    {
+        DB::table('cart_items')
+            ->where('id', $itemId)
+            ->update([
+                'quantity' => $quantity,
+                'selected_size' => $size,
+                'selected_color' => $color,
+                'updated_at' => now(),
+            ]);
+    }
+
+    public function incrementItemQuantity(int $itemId, int $quantity): void
+    {
+        DB::table('cart_items')
+            ->where('id', $itemId)
+            ->increment('quantity', $quantity, ['updated_at' => now()]);
     }
 
     public function updateItemQuantity(int $itemId, int $quantity): void

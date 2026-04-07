@@ -8,12 +8,16 @@ class UpdateCartDTO
 {
     public readonly int $itemId;
     public readonly int $quantity;
+    public readonly ?string $selectedSize;
+    public readonly ?string $selectedColor;
 
     public function __construct(array $data)
     {
         $this->validate($data);
         $this->itemId   = (int) $data['item_id'];
         $this->quantity = (int) $data['quantity'];
+        $this->selectedSize = $data['selected_size'] ?? null;
+        $this->selectedColor = $data['selected_color'] ?? null;
     }
 
     private function validate(array $data): void

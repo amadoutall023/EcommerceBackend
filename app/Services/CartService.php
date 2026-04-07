@@ -80,24 +80,51 @@ class CartService
             throw new NotFoundException('Panier');
         }
 
-        $itemExist = false;
+        $targetItem = null;
         foreach ($cart->items as $item) {
             if ($item->id === $dto->itemId) {
-                $itemExist = true;
-                // Check stock for the new quantity
-                $product = $this->productRepository->findById($item->productId);
-                if ($product && $product->stock < $dto->quantity) {
-                    throw new ValidationException(['quantity' => 'Stock insuffisant pour la quantite ' . $dto->quantity . '.']);
-                }
+                $targetItem = $item;
                 break;
             }
         }
 
-        if (!$itemExist) {
+        if (!$targetItem) {
             throw new NotFoundException('Article du panier');
         }
 
-        $this->cartRepository->updateItemQuantity($dto->itemId, $dto->quantity);
+        $product = $this->productRepository->findById($targetItem->productId);
+        if ($product && $product->stock < $dto->quantity) {
+            throw new ValidationException(['quantity' => 'Stock insuffisant pour la quantite ' . $dto->quantity . '.']);
+        }
+
+        $nextSize = $dto->selectedSize ?? $targetItem->selectedSize;
+        $nextColor = $dto->selectedColor ?? $targetItem->selectedColor;
+
+        $matchingItem = null;
+        foreach ($cart->items as $item) {
+            if (
+                $item->id !== $targetItem->id
+                && $item->productId === $targetItem->productId
+                && $item->selectedSize === $nextSize
+                && $item->selectedColor === $nextColor
+            ) {
+                $matchingItem = $item;
+                break;
+            }
+        }
+
+        if ($matchingItem) {
+            $mergedQuantity = $matchingItem->quantity + $dto->quantity;
+            if ($product && $product->stock < $mergedQuantity) {
+                throw new ValidationException(['quantity' => 'Stock insuffisant pour fusionner ces variantes.']);
+            }
+
+            $this->cartRepository->incrementItemQuantity($matchingItem->id, $dto->quantity);
+            $this->cartRepository->removeItem($cart->id, $targetItem->id);
+            return;
+        }
+
+        $this->cartRepository->updateItem($dto->itemId, $dto->quantity, $nextSize, $nextColor);
     }
 
     public function removeItem(int $userId, int $itemId): void
