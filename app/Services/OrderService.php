@@ -18,7 +18,8 @@ class OrderService
         private readonly OrderRepository $orderRepository,
         private readonly CartRepository $cartRepository,
         private readonly ProductRepository $productRepository,
-        private readonly UserRepository $userRepository
+        private readonly UserRepository $userRepository,
+        private readonly OrderNotificationService $orderNotificationService
     ) {}
 
     public function checkout(int $userId): array
@@ -45,6 +46,12 @@ class OrderService
             $this->cartRepository->clearCart($cart->id);
 
             $order = $this->orderRepository->findById($orderId, $userId);
+            $customer = $this->userRepository->findById($userId);
+
+            if ($customer) {
+                $this->orderNotificationService->sendNewOrderNotification($order->toArray(), $customer);
+            }
+
             return $order->toArray();
         });
     }
@@ -61,6 +68,7 @@ class OrderService
 
             $orderId = $this->orderRepository->create($user->id, $totalAmount, $orderItems);
             $order = $this->orderRepository->findById($orderId, $user->id);
+            $this->orderNotificationService->sendNewOrderNotification($order->toArray(), $user);
 
             return $order->toArray();
         });

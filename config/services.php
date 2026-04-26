@@ -41,4 +41,8 @@ return [
         'api_secret' => env('CLOUDINARY_API_SECRET'),
     ],
 
+    'order_notifications' => [
+        'to' => env('ORDER_NOTIFICATION_EMAIL', env('MAIL_FROM_ADDRESS')),
+    ],
+
 ];

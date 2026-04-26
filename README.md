@@ -94,3 +94,19 @@ L'API sera disponible sur `http://localhost:8000`.
 - `CLOUDINARY_API_SECRET=...`
 
 Pour un vrai deploiement, remplace les credentials de base de donnees et fournis une vraie `APP_KEY` dans l'environnement.
+
+### Email commande avec Brevo sur Render
+
+Le backend utilise le mailer SMTP standard de Laravel. Pour Brevo sur Render, configure:
+
+- `MAIL_MAILER=smtp`
+- `MAIL_HOST=smtp-relay.brevo.com`
+- `MAIL_PORT=587`
+- `MAIL_USERNAME=apikey`
+- `MAIL_PASSWORD=...` (ta cle API Brevo)
+- `MAIL_ENCRYPTION=tls`
+- `MAIL_FROM_ADDRESS=...`
+- `MAIL_FROM_NAME="Ton App"`
+- `ORDER_NOTIFICATION_EMAIL=...` (adresse qui recoit les alertes de nouvelle commande)
+
+Quand une commande est creee via checkout utilisateur ou invite, le backend envoie un email de notification a `ORDER_NOTIFICATION_EMAIL`. Si l'envoi email echoue, la commande reste validee et l'erreur est simplement journalisee.
