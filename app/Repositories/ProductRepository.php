@@ -62,6 +62,13 @@ class ProductRepository
             ->decrement('stock', $quantity);
     }
 
+    public function restoreStock(int $productId, int $quantity): bool
+    {
+        return DB::table($this->table)
+            ->where('id', $productId)
+            ->increment('stock', $quantity) > 0;
+    }
+
     public function create(array $data): int
     {
         return DB::table($this->table)->insertGetId(array_merge($data, [

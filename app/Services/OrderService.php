@@ -104,6 +104,31 @@ class OrderService
         return ['message' => 'Statut de la commande mis a jour avec succes'];
     }
 
+    public function deleteOrder(int $id): array
+    {
+        $order = $this->orderRepository->findAnyById($id);
+
+        if (!$order) {
+            throw new \App\Exceptions\NotFoundException('Commande');
+        }
+
+        DB::transaction(function () use ($order, $id) {
+            foreach ($order->items as $item) {
+                if ($item->productId !== null) {
+                    $this->productRepository->restoreStock($item->productId, $item->quantity);
+                }
+            }
+
+            $deleted = $this->orderRepository->delete($id);
+
+            if (!$deleted) {
+                throw new \RuntimeException('La suppression de la commande a echoue.');
+            }
+        });
+
+        return ['message' => 'Commande supprimee avec succes'];
+    }
+
     public function getAdminStats(): array
     {
         return $this->orderRepository->getStats();

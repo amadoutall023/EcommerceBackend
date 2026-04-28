@@ -53,6 +53,7 @@ Route::middleware(['rate.limit'])->group(function () {
             Route::get('stats', [OrderController::class, 'adminStats']);
             Route::get('orders', [OrderController::class, 'adminAll']);
             Route::put('orders/{id}/status', [OrderController::class, 'adminUpdateStatus']);
+            Route::delete('orders/{id}', [OrderController::class, 'adminDestroy']);
 
             Route::apiResource('products', ProductController::class);
 

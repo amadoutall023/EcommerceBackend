@@ -87,6 +87,30 @@ class OrderRepository
             ]) > 0;
     }
 
+    public function findAnyById(int $id): ?Order
+    {
+        $orderData = DB::table('orders')
+            ->join('users', 'orders.user_id', '=', 'users.id')
+            ->select('orders.*', 'users.name as customer_name', 'users.phone as customer_phone')
+            ->where('orders.id', $id)
+            ->first();
+
+        if (!$orderData) {
+            return null;
+        }
+
+        return $this->hydrateOrder($orderData);
+    }
+
+    public function delete(int $id): bool
+    {
+        return DB::transaction(function () use ($id) {
+            DB::table('order_items')->where('order_id', $id)->delete();
+
+            return DB::table('orders')->where('id', $id)->delete() > 0;
+        });
+    }
+
     public function getStats(): array
     {
         return [

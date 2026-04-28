@@ -55,6 +55,13 @@ class OrderController extends Controller
         return response()->json($result);
     }
 
+    public function adminDestroy(int $id): JsonResponse
+    {
+        $result = $this->orderService->deleteOrder($id);
+
+        return response()->json($result);
+    }
+
     public function adminStats(): JsonResponse
     {
         $stats = $this->orderService->getAdminStats();
