@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\DTOs\Order\GuestCheckoutDTO;
 use App\Exceptions\ValidationException;
+use App\Models\User;
 use App\Repositories\CartRepository;
 use App\Repositories\OrderRepository;
 use App\Repositories\ProductRepository;
@@ -30,7 +31,7 @@ class OrderService
             throw new ValidationException(['cart' => 'Votre panier est vide.']);
         }
 
-        return DB::transaction(function () use ($userId, $cart) {
+        $result = DB::transaction(function () use ($userId, $cart) {
             $orderItems = $this->prepareOrderItems(array_map(
                 fn($item) => [
                     'product_id' => $item->productId,
@@ -48,17 +49,22 @@ class OrderService
             $order = $this->orderRepository->findById($orderId, $userId);
             $customer = $this->userRepository->findById($userId);
 
-            if ($customer) {
-                $this->orderNotificationService->sendNewOrderNotification($order->toArray(), $customer);
-            }
-
-            return $order->toArray();
+            return [
+                'order' => $order->toArray(),
+                'customer' => $customer,
+            ];
         });
+
+        if ($result['customer']) {
+            $this->dispatchOrderNotification($result['order'], $result['customer']);
+        }
+
+        return $result['order'];
     }
 
     public function guestCheckout(GuestCheckoutDTO $dto): array
     {
-        return DB::transaction(function () use ($dto) {
+        $result = DB::transaction(function () use ($dto) {
             $user = $this->resolveGuestCustomer($dto);
             $orderItems = $this->prepareOrderItems($dto->items);
             $totalAmount = round(array_sum(array_map(
@@ -68,10 +74,16 @@ class OrderService
 
             $orderId = $this->orderRepository->create($user->id, $totalAmount, $orderItems);
             $order = $this->orderRepository->findById($orderId, $user->id);
-            $this->orderNotificationService->sendNewOrderNotification($order->toArray(), $user);
 
-            return $order->toArray();
+            return [
+                'order' => $order->toArray(),
+                'customer' => $user,
+            ];
         });
+
+        $this->dispatchOrderNotification($result['order'], $result['customer']);
+
+        return $result['order'];
     }
 
     public function getUserOrders(int $userId): array
@@ -171,15 +183,16 @@ class OrderService
         return $orderItems;
     }
 
-    private function resolveGuestCustomer(GuestCheckoutDTO $dto): object
+    private function resolveGuestCustomer(GuestCheckoutDTO $dto): User
     {
         $normalizedPhone = $this->normalizePhone($dto->phone);
         $existingUser = $this->userRepository->findByPhone($normalizedPhone);
 
         if ($dto->isFirstOrder) {
             if ($existingUser) {
-                $this->userRepository->update($existingUser->id, ['name' => $dto->name]);
-                return $this->userRepository->findById($existingUser->id);
+                throw new ValidationException([
+                    'phone' => 'Ce numero existe deja. Choisissez "Non" si vous avez deja commande avec ce numero.',
+                ]);
             }
 
             $userId = $this->userRepository->create([
@@ -195,7 +208,7 @@ class OrderService
 
         if (!$existingUser) {
             throw new ValidationException([
-                'phone' => 'Aucun client n\'a ete trouve avec ce numero. Choisissez "Premiere commande" pour creer votre fiche.',
+                'phone' => 'Aucun client n\'a ete trouve avec ce numero. Choisissez "Oui" si c\'est votre premiere commande.',
             ]);
         }
 
@@ -205,5 +218,12 @@ class OrderService
     private function normalizePhone(string $phone): string
     {
         return preg_replace('/\s+/', '', trim($phone));
+    }
+
+    private function dispatchOrderNotification(array $order, User $customer): void
+    {
+        app()->terminating(function () use ($order, $customer) {
+            $this->orderNotificationService->sendNewOrderNotification($order, $customer);
+        });
     }
 }
