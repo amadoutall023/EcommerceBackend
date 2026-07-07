@@ -28,6 +28,7 @@ Route::middleware(['rate.limit'])->group(function () {
     // Newsletter subscription
     Route::post('subscribe', [SubscriberController::class, 'subscribe']);
     Route::post('checkout/guest', [CartController::class, 'guestCheckout']);
+    Route::post('checkout/guest/whatsapp', [CartController::class, 'guestCheckoutWhatsapp']);
 
     // Authenticated routes
     Route::middleware(['auth.jwt'])->group(function () {
@@ -41,6 +42,7 @@ Route::middleware(['rate.limit'])->group(function () {
             Route::put('update', [CartController::class, 'update']);
             Route::delete('remove/{item_id}', [CartController::class, 'remove']);
             Route::post('checkout', [CartController::class, 'checkout']);
+            Route::post('checkout/whatsapp', [CartController::class, 'checkoutWhatsapp']);
         });
 
         Route::prefix('orders')->group(function () {

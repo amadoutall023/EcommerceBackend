@@ -45,4 +45,8 @@ return [
         'to' => env('ORDER_NOTIFICATION_EMAIL', env('MAIL_FROM_ADDRESS')),
     ],
 
+    'whatsapp_orders' => [
+        'phone' => env('WHATSAPP_ORDER_PHONE', '221784541151'),
+    ],
+
 ];

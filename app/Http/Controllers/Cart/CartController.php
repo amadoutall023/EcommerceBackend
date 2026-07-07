@@ -75,4 +75,26 @@ class CartController extends Controller
             'data' => $order,
         ], 201);
     }
+
+    public function checkoutWhatsapp(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('user');
+        $result = $this->orderService->checkoutViaWhatsapp($user->id);
+
+        return response()->json([
+            'message' => 'Commande enregistree avec succes. Redirection vers WhatsApp.',
+            'data' => $result,
+        ], 201);
+    }
+
+    public function guestCheckoutWhatsapp(Request $request): JsonResponse
+    {
+        $dto = new GuestCheckoutDTO($request->all());
+        $result = $this->orderService->guestCheckoutViaWhatsapp($dto);
+
+        return response()->json([
+            'message' => 'Commande enregistree avec succes. Redirection vers WhatsApp.',
+            'data' => $result,
+        ], 201);
+    }
 }

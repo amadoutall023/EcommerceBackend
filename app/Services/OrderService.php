@@ -32,7 +32,7 @@ class OrderService
         }
 
         $result = DB::transaction(function () use ($userId, $cart) {
-            $orderItems = $this->prepareOrderItems(array_map(
+            $items = array_map(
                 fn($item) => [
                     'product_id' => $item->productId,
                     'quantity' => $item->quantity,
@@ -41,18 +41,12 @@ class OrderService
                     'product_name' => $item->productName,
                 ],
                 $cart->items
-            ));
+            );
 
-            $orderId = $this->orderRepository->create($userId, $cart->total(), $orderItems);
+            $result = $this->createOrderForUser($userId, $items, $cart->total());
             $this->cartRepository->clearCart($cart->id);
 
-            $order = $this->orderRepository->findById($orderId, $userId);
-            $customer = $this->userRepository->findById($userId);
-
-            return [
-                'order' => $order->toArray(),
-                'customer' => $customer,
-            ];
+            return $result;
         });
 
         if ($result['customer']) {
@@ -62,28 +56,67 @@ class OrderService
         return $result['order'];
     }
 
+    public function checkoutViaWhatsapp(int $userId): array
+    {
+        $cart = $this->cartRepository->findByUserId($userId);
+
+        if (!$cart || empty($cart->items)) {
+            throw new ValidationException(['cart' => 'Votre panier est vide.']);
+        }
+
+        $result = DB::transaction(function () use ($userId, $cart) {
+            $items = array_map(
+                fn($item) => [
+                    'product_id' => $item->productId,
+                    'quantity' => $item->quantity,
+                    'selected_size' => $item->selectedSize,
+                    'selected_color' => $item->selectedColor,
+                    'product_name' => $item->productName,
+                ],
+                $cart->items
+            );
+
+            $result = $this->createOrderForUser($userId, $items, $cart->total());
+            $this->cartRepository->clearCart($cart->id);
+
+            return $result;
+        });
+
+        if ($result['customer']) {
+            $this->dispatchOrderNotification($result['order'], $result['customer']);
+        }
+
+        return [
+            'order' => $result['order'],
+            'whatsapp_url' => $this->buildWhatsappUrl($result['order'], $result['customer']),
+        ];
+    }
+
     public function guestCheckout(GuestCheckoutDTO $dto): array
     {
         $result = DB::transaction(function () use ($dto) {
             $user = $this->resolveGuestCustomer($dto);
-            $orderItems = $this->prepareOrderItems($dto->items);
-            $totalAmount = round(array_sum(array_map(
-                fn($item) => $item['unit_price'] * $item['quantity'],
-                $orderItems
-            )), 2);
-
-            $orderId = $this->orderRepository->create($user->id, $totalAmount, $orderItems);
-            $order = $this->orderRepository->findById($orderId, $user->id);
-
-            return [
-                'order' => $order->toArray(),
-                'customer' => $user,
-            ];
+            return $this->createOrderForUser($user->id, $dto->items, null, $user);
         });
 
         $this->dispatchOrderNotification($result['order'], $result['customer']);
 
         return $result['order'];
+    }
+
+    public function guestCheckoutViaWhatsapp(GuestCheckoutDTO $dto): array
+    {
+        $result = DB::transaction(function () use ($dto) {
+            $user = $this->resolveGuestCustomer($dto);
+            return $this->createOrderForUser($user->id, $dto->items, null, $user);
+        });
+
+        $this->dispatchOrderNotification($result['order'], $result['customer']);
+
+        return [
+            'order' => $result['order'],
+            'whatsapp_url' => $this->buildWhatsappUrl($result['order'], $result['customer']),
+        ];
     }
 
     public function getUserOrders(int $userId): array
@@ -183,6 +216,28 @@ class OrderService
         return $orderItems;
     }
 
+    private function createOrderForUser(
+        int $userId,
+        array $items,
+        ?float $totalAmount = null,
+        ?User $customer = null
+    ): array {
+        $orderItems = $this->prepareOrderItems($items);
+        $computedTotal = round(array_sum(array_map(
+            fn($item) => $item['unit_price'] * $item['quantity'],
+            $orderItems
+        )), 2);
+
+        $orderId = $this->orderRepository->create($userId, $totalAmount ?? $computedTotal, $orderItems);
+        $order = $this->orderRepository->findById($orderId, $userId);
+        $resolvedCustomer = $customer ?? $this->userRepository->findById($userId);
+
+        return [
+            'order' => $order->toArray(),
+            'customer' => $resolvedCustomer,
+        ];
+    }
+
     private function resolveGuestCustomer(GuestCheckoutDTO $dto): User
     {
         $normalizedPhone = $this->normalizePhone($dto->phone);
@@ -225,5 +280,42 @@ class OrderService
         app()->terminating(function () use ($order, $customer) {
             $this->orderNotificationService->sendNewOrderNotification($order, $customer);
         });
+    }
+
+    private function buildWhatsappUrl(array $order, ?User $customer): string
+    {
+        $phone = $this->normalizeWhatsappNumber((string) config('services.whatsapp_orders.phone', '221784541151'));
+        $customerName = trim((string) ($customer?->name ?? $order['customer_name'] ?? 'Client'));
+        $customerPhone = trim((string) ($customer?->phone ?? $order['customer_phone'] ?? ''));
+        $itemsSummary = array_map(function (array $item): string {
+            $variant = array_filter([
+                $item['selected_size'] ?? null ? 'Taille '.$item['selected_size'] : null,
+                $item['selected_color'] ?? null ? 'Couleur '.$item['selected_color'] : null,
+            ]);
+
+            $suffix = empty($variant) ? '' : ' ('.implode(', ', $variant).')';
+
+            return sprintf('- %s x%d%s', $item['product_name'] ?? 'Article', (int) $item['quantity'], $suffix);
+        }, $order['items'] ?? []);
+
+        $messageLines = array_filter([
+            sprintf('Bonjour TaTrend, je confirme ma commande #ORD-%d.', (int) $order['id']),
+            sprintf('Client: %s', $customerName),
+            $customerPhone !== '' ? sprintf('Telephone: %s', $customerPhone) : null,
+            'Articles:',
+            ...$itemsSummary,
+            sprintf('Total: %.0f XOF', (float) ($order['total_amount'] ?? 0)),
+        ]);
+
+        return sprintf(
+            'https://wa.me/%s?text=%s',
+            $phone,
+            rawurlencode(implode("\n", $messageLines))
+        );
+    }
+
+    private function normalizeWhatsappNumber(string $phone): string
+    {
+        return preg_replace('/\D+/', '', $phone);
     }
 }

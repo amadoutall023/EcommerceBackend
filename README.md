@@ -108,5 +108,7 @@ Le backend utilise le mailer SMTP standard de Laravel. Pour Brevo sur Render, co
 - `MAIL_FROM_ADDRESS=...`
 - `MAIL_FROM_NAME="Ton App"`
 - `ORDER_NOTIFICATION_EMAIL=...` (adresse qui recoit les alertes de nouvelle commande)
+- `WHATSAPP_ORDER_PHONE=221784541151` (numero WhatsApp qui recevra les commandes)
 
 Quand une commande est creee via checkout utilisateur ou invite, le backend envoie un email de notification a `ORDER_NOTIFICATION_EMAIL`. Si l'envoi email echoue, la commande reste validee et l'erreur est simplement journalisee.
+Le flow WhatsApp enregistre aussi la commande en base avant de rediriger le client vers WhatsApp, ce qui permet de conserver l'historique et la gestion du stock.
